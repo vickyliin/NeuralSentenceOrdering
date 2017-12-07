@@ -54,7 +54,7 @@ class Embedding():
         #self.W_Tag = self.init((self.size_label_set, self.output_dim_tag))
         
         
-        if weights != None:
+        if weights is not None:
             self.W = theano.shared(value = np.asarray(weights, dtype = theano.config.floatX), borrow=True)
         self.params = [self.W]
         
