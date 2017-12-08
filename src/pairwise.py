@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import os
 import time
 from collections import OrderedDict
 import theano
@@ -76,6 +77,9 @@ class Pairwise(object):
                  
         return top1_res
     def save_result(self,path,top1_res):
+        dir = os.path.dirname(path)
+        if not os.path.isdir(dir):
+            os.mkdir(dir)
         fw = open(path,'w')
         for paragraph, cur_categories in top1_res:
             paragraph = np.asarray(paragraph) - np.min(paragraph)
