@@ -9,6 +9,8 @@ from data_utils import load_data, prepare_data, get_minibatches_idx, data_paddin
 from model import build_model
 from optimizer import sgd,rmsprop,adadelta
 import theano.tensor as tensor
+import tensorflow as tf
+
 class Pairwise(object):
     def get_score(self, pre_sentence_list, cur_sentence, preds, pairdict):
         score = 0.0
@@ -67,11 +69,17 @@ class Pairwise(object):
         
         top = 1
         while top <= model_options['beam_size']:
+            writer = tf.summary.FileWriter(self.result_path + '/logdir/correct-rate/%s/%d' % (self.eva_data, top))
             eva_res_top = np.max(eva_res[:,:top,:], axis = 1) # n_paragraph * 2  patial_correct, total_correct
             print 'Top %d beam ' % top
             average = np.average(eva_res_top, axis = 0)
             print 'patial_correct_rate: ', average[0]
             print 'total_correct_rate: ', average[1]
+            writer.add_summary(tf.Summary(value=[
+                tf.Summary.Value(tag='partial_correct_rate', simple_value=average[0]),
+                tf.Summary.Value(tag='total_correct_rate', simple_value=average[1])
+            ]), self.epoch)
+            writer.flush()
             top *= 2
         print ''
                  
@@ -115,6 +123,9 @@ class Pairwise(object):
              CNN_filter_length,
              LSTM_go_backwards
              ):
+
+        self.result_path = result_path
+        self.writer = tf.summary.FileWriter(result_path + '/logdir')
         model_options = locals().copy()
         model_options['rng'] = np.random.RandomState(random_seed)
         print 'Loading data'
@@ -186,13 +197,16 @@ class Pairwise(object):
                 cost = f_grad_shared(sentence1,sentence1_mask,sentence2,sentence2_mask,y)
                 f_update(model_options['alpha'])
                 if np.isnan(cost) or np.isinf(cost):
-                    print 'NaN detected'
-                    return 1., 1., 1.
+                    raise ValueError('NaN detected')
 
                 if np.mod(uidx, dispFreq) == 0:
                     print 'Epoch ', epoch, 'Update ', uidx, 'Cost ', cost, 'Samples_seen ', samples_seen
                     sys.stdout.flush()
             print 'Epoch ', epoch, 'Update ', uidx, 'Cost ', cost, 'Samples_seen ', samples_seen
+            self.writer.add_summary(tf.Summary(value=[
+                tf.Summary.Value(tag='loss', simple_value=cost)
+            ]), epoch)
+            self.writer.flush()
             sys.stdout.flush()
             '''
             if epoch % 5 == 0:
@@ -201,11 +215,14 @@ class Pairwise(object):
                 self.eva(f_pred, src_train, train, pairdict_train, kf_train, model_options)
                 sys.stdout.flush()
             '''
+            self.epoch = epoch
             print ('Valid_score:')
+            self.eva_data = 'valid'
             top1_res = self.eva(f_pred, src_valid, valid, pairdict_valid, kf_valid, model_options)
             self.save_result(model_options['result_path'] + 'dev.on.' + str(epoch) +'th_epoch_' + model_options['dataset'],top1_res)
             sys.stdout.flush()
             print ('Test_score:')
+            self.eva_data = 'test'
             top1_res = self.eva(f_pred, src_test, test, pairdict_test, kf_test, model_options)
             self.save_result(model_options['result_path'] + 'test.on.' + str(epoch) +'th_epoch_' + model_options['dataset'],top1_res)
             sys.stdout.flush()

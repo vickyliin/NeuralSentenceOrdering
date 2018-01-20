@@ -1,26 +1,20 @@
-import numpy as np
-import sys
-import time
 from pairwise import Pairwise
-from model import build_model
-import cPickle as pkl
-#from Activation import *
 if __name__ == '__main__':
-    flag_toy_data = 0.1
+    flag_toy_data = False
     random_seed = 1234
     alpha = 0.2
     batch_size = 128
     dispFreq = 2048
     n_epochs = 600
-    wordVecLen = 25 # useless
+    wordVecLen = 100 # useless
     flag_dropout = False
     size_hidden_layer = 100
     dropoutRates = 0.2 # for output of the embedding layer
     optimizer = 'adadelta'
     beam_size = 128
-    dataset = 'all'
+    dataset = 'vist'
     datapath = '../data/%s.pkl.gz'%dataset
-    result_path = './result/'
+    result_path = './vist-result/'
     sentence_modeling = 'CNN' # available: 'CBoW' 'LSTM' 'CNN'
     CNN_filter_length = 3
     LSTM_go_backwards = True
@@ -47,5 +41,4 @@ if __name__ == '__main__':
              CNN_filter_length = CNN_filter_length,
              LSTM_go_backwards = LSTM_go_backwards
              )
-    
     
